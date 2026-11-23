@@ -1,71 +1,77 @@
-<div class="container secao">
-  <h2 class="secao-titulo">Minha cesta</h2>
+<div class="container py-5">
+  <h2 class="titulo-secao mb-4">Minha Cesta</h2>
 
-  @if (finalizado()) {
-    <div class="text-center py-5">
-      <h3>🎉 Pedido realizado com sucesso!</h3>
-      <p class="text-secondary">Obrigado por comprar na KABUTO-HAKI Fitness Lifestyle.</p>
-      <a routerLink="/" class="btn btn-hado">Voltar para a vitrine</a>
+  @if (erroPedido()) {
+    <div class="alert alert-danger" role="alert">{{ erroPedido() }}</div>
+  }
+
+  @if (compraFinalizada()) {
+    <div class="card border-0 shadow-sm p-5 text-center mx-auto" style="max-width: 560px; border-radius: 14px;">
+      <h2 class="mb-2">🎉 Pedido realizado com sucesso!</h2>
+      <p class="text-secondary mb-1">Número do pedido: <strong>#KH-{{ numeroPedido() }}</strong></p>
+      <p class="text-secondary mb-4">Seu pedido foi registrado no sistema KABUTO-HAKI Fitness Lifestyle.</p>
+      <a routerLink="/" class="btn btn-hado btn-lg">Continuar comprando</a>
     </div>
   } @else if (cart.itens().length === 0) {
-    <div class="text-center py-5">
-      <h3>Sua cesta está vazia</h3>
-      <p class="text-secondary">Adicione produtos para começar suas compras.</p>
+    <div class="card border-0 shadow-sm p-5 text-center mx-auto" style="max-width: 560px; border-radius: 14px;">
+      <h4 class="mb-2">Sua cesta está vazia</h4>
+      <p class="text-secondary mb-4">Explore nossa vitrine e adicione produtos ao carrinho.</p>
       <a routerLink="/busca" class="btn btn-hado">Ver produtos</a>
     </div>
   } @else {
     <div class="row g-4">
       <div class="col-12 col-lg-8">
-        @for (item of cart.itens(); track item.produtoId + '-' + item.tamanho) {
-          <div class="cesta-item">
-            <div class="row align-items-center g-3">
-              <div class="col-3 col-md-2">
-                <img [src]="item.imagem" [alt]="item.nome">
+        @for (item of cart.itens(); track item.produtoId + item.tamanho) {
+          <div class="cesta-item d-flex align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+              <img [src]="item.imagem" [alt]="item.nome">
+              <div>
+                <h6 class="mb-1 fw-bold">{{ item.nome }}</h6>
+                <small class="text-secondary d-block">Tamanho: {{ item.tamanho }}</small>
+                <span class="preco-card">{{ item.preco | currency:'BRL':'symbol':'1.2-2' }}</span>
               </div>
-              <div class="col-9 col-md-4">
-                <a class="produto-nome" [routerLink]="['/produto', item.produtoId]">{{ item.nome }}</a>
-                <div class="text-secondary small">Tamanho: {{ item.tamanho }}</div>
-                <div class="fw-bold">{{ item.preco | currency:'BRL':'symbol':'1.2-2' }}</div>
-              </div>
-              <div class="col-6 col-md-3">
-                <div class="d-flex align-items-center gap-2">
-                  <button type="button" class="qtd-btn" (click)="diminuir(item.produtoId, item.tamanho)">−</button>
-                  <strong>{{ item.quantidade }}</strong>
-                  <button type="button" class="qtd-btn" (click)="aumentar(item.produtoId, item.tamanho)">+</button>
-                </div>
-              </div>
-              <div class="col-6 col-md-3 text-end">
-                <div class="fw-bold mb-1">{{ item.preco * item.quantidade | currency:'BRL':'symbol':'1.2-2' }}</div>
-                <button type="button" class="btn btn-sm btn-outline-danger" (click)="remover(item.produtoId, item.tamanho)">Remover</button>
-              </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+              <button type="button" class="btn btn-sm btn-outline-secondary"
+                      (click)="cart.alterarQuantidade(item.produtoId, item.tamanho, item.quantidade - 1)">-</button>
+              <span class="fw-bold px-2">{{ item.quantidade }}</span>
+              <button type="button" class="btn btn-sm btn-outline-secondary"
+                      (click)="cart.alterarQuantidade(item.produtoId, item.tamanho, item.quantidade + 1)">+</button>
+              <button type="button" class="btn btn-sm btn-outline-danger ms-2"
+                      (click)="cart.remover(item.produtoId, item.tamanho)">Remover</button>
             </div>
           </div>
         }
-        <button type="button" class="btn btn-link text-danger px-0" (click)="limpar()">Esvaziar cesta</button>
+
+        <div class="mt-3">
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="cart.limpar()">
+            Limpar cesta
+          </button>
+        </div>
       </div>
 
       <div class="col-12 col-lg-4">
-        <div class="resumo-card">
-          <h4>Resumo do pedido</h4>
-          <div class="d-flex justify-content-between mt-3">
+        <div class="card border-0 shadow-sm p-4" style="border-radius: 14px;">
+          <h5 class="fw-bold mb-3">Resumo do Pedido</h5>
+          <div class="d-flex justify-content-between mb-2">
             <span>Itens ({{ cart.totalItens() }})</span>
-            <span>{{ cart.subtotal() | currency:'BRL':'symbol':'1.2-2' }}</span>
+            <span>{{ totalPedido() | currency:'BRL':'symbol':'1.2-2' }}</span>
           </div>
-          <div class="d-flex justify-content-between mt-2">
+          <div class="d-flex justify-content-between mb-3 text-success">
             <span>Frete</span>
-            <span>
-              @if (frete === 0) { Grátis } @else { {{ frete | currency:'BRL':'symbol':'1.2-2' }} }
-            </span>
+            <span>Grátis</span>
           </div>
-          <small class="text-secondary">Frete grátis em compras acima de R$ 300,00</small>
           <hr>
-          <div class="d-flex justify-content-between fs-5 fw-bold">
+          <div class="d-flex justify-content-between fw-bold fs-5 mb-4">
             <span>Total</span>
-            <span>{{ total | currency:'BRL':'symbol':'1.2-2' }}</span>
+            <span class="preco-card">{{ totalPedido() | currency:'BRL':'symbol':'1.2-2' }}</span>
           </div>
-          <div class="d-grid gap-2 mt-4">
-            <button type="button" class="btn btn-hado btn-lg" (click)="finalizar()">Finalizar compra</button>
-            <a routerLink="/busca" class="btn btn-hado-outline">Continuar comprando</a>
+          <div class="d-grid gap-2">
+            <button type="button" class="btn btn-hado btn-lg" [disabled]="carregando()" (click)="finalizarCompra()">
+              {{ carregando() ? 'Finalizando...' : 'Finalizar compra' }}
+            </button>
+            <a routerLink="/busca" class="btn btn-outline-dark">Continuar comprando</a>
           </div>
         </div>
       </div>

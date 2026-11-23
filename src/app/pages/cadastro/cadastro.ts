@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { ClienteService } from '../../services/cliente';
 
 function cpfValido(control: AbstractControl): ValidationErrors | null {
   const valor = String(control.value ?? '').replace(/\D/g, '');
@@ -60,8 +61,11 @@ function senhasIguais(grupo: AbstractControl): ValidationErrors | null {
 })
 export class CadastroComponent {
   private fb = inject(FormBuilder);
+  private clienteService = inject(ClienteService);
 
   enviado = false;
+  carregando = signal(false);
+  erroCadastro = signal('');
   concluido = signal(false);
   nomeCadastrado = signal('');
   mostrarSenha = signal(false);
@@ -125,20 +129,36 @@ export class CadastroComponent {
 
   cadastrar(): void {
     this.enviado = true;
+    this.erroCadastro.set('');
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
 
     const v = this.form.getRawValue();
-    try {
-      localStorage.setItem('hado_usuario', JSON.stringify({ nome: v.nome, email: v.email }));
-    } catch {
-      // ignora falha de armazenamento
-    }
+    this.carregando.set(true);
 
-    this.nomeCadastrado.set((v.nome ?? '').trim().split(/\s+/)[0]);
-    this.concluido.set(true);
-    window.scrollTo({ top: 0 });
+    this.clienteService.cadastrar({
+      nome: (v.nome ?? '').trim(),
+      email: (v.email ?? '').trim(),
+      senha: v.senha ?? '',
+      documento: String(v.cpf ?? '').replace(/\D/g, ''),
+      telefone: String(v.telefone ?? '').replace(/\D/g, ''),
+      logradouro: 'São Paulo - SP',
+      ativo: 1
+    }).subscribe({
+      next: () => {
+        this.carregando.set(false);
+        this.nomeCadastrado.set((v.nome ?? '').trim().split(/\s+/)[0]);
+        this.concluido.set(true);
+        window.scrollTo({ top: 0 });
+      },
+      error: (err) => {
+        console.error('Erro ao cadastrar cliente:', err);
+        this.carregando.set(false);
+        this.erroCadastro.set('Erro ao salvar cadastro no servidor. Verifique se o e-mail já está em uso ou tente novamente.');
+      }
+    });
   }
 }

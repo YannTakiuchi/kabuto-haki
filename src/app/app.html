@@ -22,18 +22,27 @@
         <button class="btn btn-hado" type="submit">Buscar</button>
       </form>
 
-      <ul class="navbar-nav">
+      <ul class="navbar-nav align-items-lg-center">
         <li class="nav-item">
           <a class="nav-link" routerLink="/cesta" routerLinkActive="active">
             🛒 Cesta <span class="badge-cesta">{{ cart.totalItens() }}</span>
           </a>
         </li>
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/login" routerLinkActive="active">Entrar</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/cadastro" routerLinkActive="active">Cadastrar</a>
-        </li>
+        @if (clienteService.clienteLogado()) {
+          <li class="nav-item">
+            <span class="nav-link fw-semibold">Olá, {{ primeiroNome }}</span>
+          </li>
+          <li class="nav-item">
+            <button type="button" class="btn btn-sm btn-outline-light ms-lg-2" (click)="sair()">Sair</button>
+          </li>
+        } @else {
+          <li class="nav-item">
+            <a class="nav-link" routerLink="/login" routerLinkActive="active">Entrar</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" routerLink="/cadastro" routerLinkActive="active">Cadastrar</a>
+          </li>
+        }
       </ul>
     </div>
   </div>
@@ -62,7 +71,7 @@
       </div>
       <div class="col-6 col-md-4">
         <h5>Atendimento</h5>
-        <p class="mb-1">contato&#64;kabutohaki.com.br</p>
+        <p class="mb-1">contato@kabutohaki.com.br</p>
         <p>Seg a Sex, 9h às 18h</p>
       </div>
     </div>

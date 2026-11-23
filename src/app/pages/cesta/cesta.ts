@@ -1,7 +1,9 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { CartService } from '../../services/cart';
+import { ClienteService } from '../../services/cliente';
+import { PedidoService } from '../../services/pedido';
 
 @Component({
   selector: 'app-cesta',
@@ -11,35 +13,54 @@ import { CartService } from '../../services/cart';
 })
 export class CestaComponent {
   cart = inject(CartService);
-  finalizado = signal(false);
+  private clienteService = inject(ClienteService);
+  private pedidoService = inject(PedidoService);
+  private router = inject(Router);
 
-  get frete(): number {
-    const sub = this.cart.subtotal();
-    return sub === 0 || sub >= 300 ? 0 : 19.9;
-  }
+  compraFinalizada = signal(false);
+  carregando = signal(false);
+  erroPedido = signal('');
+  numeroPedido = signal(0);
 
-  get total(): number {
-    return this.cart.subtotal() + this.frete;
-  }
+  totalPedido = computed(() =>
+    this.cart.itens().reduce((acc, item) => acc + item.preco * item.quantidade, 0)
+  );
 
-  aumentar(produtoId: number, tamanho: string): void {
-    this.cart.alterarQuantidade(produtoId, tamanho, 1);
-  }
+  finalizarCompra(): void {
+    const cliente = this.clienteService.clienteLogado();
+    if (!cliente || !cliente.codigo) {
+      this.router.navigate(['/login']);
+      return;
+    }
 
-  diminuir(produtoId: number, tamanho: string): void {
-    this.cart.alterarQuantidade(produtoId, tamanho, -1);
-  }
+    const itens = this.cart.itens();
+    if (itens.length === 0) return;
 
-  remover(produtoId: number, tamanho: string): void {
-    this.cart.remover(produtoId, tamanho);
-  }
+    const resumoItens = itens
+      .map(i => `${i.quantidade}x ${i.nome} (${i.tamanho})`)
+      .join(', ');
 
-  limpar(): void {
-    this.cart.limpar();
-  }
+    this.carregando.set(true);
+    this.erroPedido.set('');
 
-  finalizar(): void {
-    this.cart.limpar();
-    this.finalizado.set(true);
+    this.pedidoService.criar({
+      codigoCliente: cliente.codigo,
+      dataPedido: new Date().toISOString().slice(0, 10),
+      entrega: cliente.logradouro || 'Endereço cadastrado',
+      obs: resumoItens,
+      valorTotal: this.totalPedido()
+    }).subscribe({
+      next: () => {
+        this.carregando.set(false);
+        this.numeroPedido.set(Math.floor(10000 + Math.random() * 90000));
+        this.cart.limpar();
+        this.compraFinalizada.set(true);
+      },
+      error: (err) => {
+        console.error('Erro ao gravar pedido:', err);
+        this.carregando.set(false);
+        this.erroPedido.set('Não foi possível registrar o pedido no servidor.');
+      }
+    });
   }
 }
